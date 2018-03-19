@@ -1,0 +1,14 @@
+---
+- name: "Set {{app_name}} - {{env_name}} vars."
+  include_vars: "{{playbook_dir}}/vars/{{app_name}}.{{env_name}}.yml"
+  ignore_errors: yes
+
+#- name: Set SELinux to Permissive
+#  selinux: policy=targeted state=permissive
+
+- name: Add Authorized Keys
+  blockinfile:
+    dest: "/home/ec2-user/.ssh/authorized_keys"
+    marker: "# devspecops {mark}"
+    content: |
+      {{user_authorized_keys | default('')}}

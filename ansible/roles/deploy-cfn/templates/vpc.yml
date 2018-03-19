@@ -1,0 +1,90 @@
+#jinja2: lstrip_blocks: True
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "VPC-CORE-UW2"
+
+Resources:
+  VPC:
+    Type: "AWS::EC2::VPC"
+    Properties:
+      CidrBlock: None
+      EnableDNSSupport: true
+      EnableDNSHostnames: true
+      Tags:
+      - Key: 
+        Value: 
+  InternetGateway:
+    Type: "AWS::EC2::InternetGateway"
+    Properties:
+      Tags:
+      - Key: Name
+        Value: Value
+  VPCIGWAttachment:
+    Type: "AWS::EC2::InternetGatewayAttachment"
+    DependsOn: [ "VPC", "InternetGateway" ]
+    Properties:
+      VpcID: !Ref "VPC"
+      InternetGatewayID: !Ref "InternetGateway"
+  InternalRouteTable:
+      Type: "AWS::EC2::RouteTable"
+      DependsOn: "VPC"
+      Properties:
+        VpcId: !Ref "VPC"
+        Tags:
+          - Key: Name
+            Value: Value
+  ExternalRouteTable:
+    Type: "AWS::EC2:RouteTable"
+    DependsOn: "VPC"
+    Properties:
+      VpcId: !Ref "VPC"
+      Tags:
+        - Key: Name
+          Value: Value
+  PriSubnet1:
+    Type: AWS::EC2::Subnet
+    DependsOn: "VPC"
+    Properties:
+      CidrBlock: /24
+      AvailabilityZone: a
+      VpcID: Ref! VPC
+      Tags:
+  PriSubnet1-PrivateRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    DependsOn: [ PriSubnet1, !Ref InternalRouteTable ]
+    Properties:
+      SubnetId: PriSubnet1
+      RouteTableId: !Ref InternalRouteTable
+  PubSubnet1:
+    Type: AWS::EC2::Subnet
+    DependsOn: "VPC"
+    Properties:
+      CidrBlock: /24
+      AvailabilityZone: b
+      VpcID: Ref! VPC
+      Tags:
+  PubSubnet1-PublicRouteTableAssociation:
+  Type: AWS::EC2::SubnetRouteTableAssociation
+  DependsOn: [ PubSubnet1, !Ref ExternalRouteTable ]
+  Properties:
+    SubnetId: PubSubnet1
+    RouteTableId: !Ref ExternalRouteTable
+  PriRoute1:
+    Type: AWS::EC2::Route
+    DependsOn: [ "InternetGateway","InternalRouteTable" ] 
+    Properties: 
+      DestinationCidrBlock: outside
+      GatewayID: internet
+      RouteTableId: !Ref InternalRouteTable
+  PubRoute1:
+    Type: AWS::EC2::Route
+    DependsOn: [ "ExternalRouteTable","InternetGateway" ]
+    Properties: 
+      DestinationCidrBlock: outside
+      GatewayID: internet
+      RouteTableId: !Ref ExternalRouteTable
+  ACL1:
+    Type: "AWS::EC2:NetworkAcl"
+    DependsOn: "VPC"
+    VpcId: !Ref "VPC"
+    Tags:
+ 

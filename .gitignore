@@ -1,0 +1,6 @@
+**/*.pyc
+**/files/bundles
+**/rendered-templates
+**/files/cfn
+*.retry
+.idea

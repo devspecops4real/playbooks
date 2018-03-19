@@ -1,0 +1,145 @@
+#jinja2: lstrip_blocks: True
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "VPC-CORE-UW2"
+
+Resources:
+  VPC:
+    Type: "AWS::EC2::VPC"
+    Properties:
+      CidrBlock: {{cidr}}
+      EnableDNSSupport: {{EnableDNSSupport}}
+      EnableDNSHostnames: {{EnableDNSHostnames}}
+      Tags:
+      {% for tag in Vpc_Tags %}
+      - Key: {{ Vpc_Tags.Key }}
+        Value: {{ Vpc_Tags.Value }}
+      {% endfor %}
+  InternetGateway:
+    Type: "AWS::EC2::InternetGateway"
+    Properties:
+      Tags:
+      {% for tag in InternetGateway.Tags %}
+      - Key: {{tag.Key}}
+        Value: {{tag.Value}}
+      {% endfor %}
+  VPCIGWAttachment:
+    Type: "AWS::EC2::InternetGatewayAttachment"
+    DependsOn: [ "VPC", "InternetGateway" ]
+    Properties:
+      VpcID: !Ref "VPC"
+      InternetGatewayID: !Ref "InternetGateway"
+  InternalRouteTable:
+      Type: "AWS::EC2::RouteTable"
+      DependsOn: "VPC"
+      Properties:
+        VpcId: !Ref "VPC"
+        Tags:
+        {% for tag in InternalRouteTable.Tags %}
+          - Key: {{tag.Key}}
+            Value: {{tag.Value}}
+        {% endfor %}
+  ExternalRouteTable:
+    Type: "AWS::EC2:RouteTable"
+    DependsOn: "VPC"
+    Properties:
+      VpcId: !Ref "VPC"
+      Tags:
+      {% for tag in ExternalRouteTable.Tags %}
+        - Key: {{tag.Key}}
+          Value: {{tag.Value}}
+      {% endfor %}
+  {% for subnet in PrivateSubnets %}
+  {{subnet}}:
+    Type: AWS::EC2::Subnet
+    DependsOn: "VPC"
+    Properties:
+      CidrBlock: {{PrivateSubnets[subnet].cidrblock}}
+      AvailabilityZone: {{ PrivateSubnets[subnet].az }}
+      VpcID: Ref! VPC
+      Tags:
+      {% for tag in subnet.Tags %}
+      - Key: {{subnet[tag].name}}
+        Value: {{subnet[tag].value}}
+      {% endfor %}
+  {{subnet}}-PrivateRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    DependsOn: [ {{subnet}}, !Ref InternalRouteTable ]
+    Properties:
+      SubnetId: {{subnet}}
+      RouteTableId: !Ref InternalRouteTable
+  {% endfor %}
+  {% for subnet in PublicSubnets %}
+  {{subnet}}:
+    Type: AWS::EC2::Subnet
+    DependsOn: "VPC"
+    Properties:
+      CidrBlock: {{PublicSubnets[subnet].cidrblock}}
+      AvailabilityZone: {{ PublicSubnets[subnet].az }}
+      VpcID: Ref! VPC
+      Tags:
+        {% for tag in subnet.tags %}
+        - Key: {{tag.name}}
+          Value: {{tag.value}}
+        {% endfor %}
+  {{subnet}}-PublicRouteTableAssociation:
+  Type: AWS::EC2::SubnetRouteTableAssociation
+  DependsOn: [ {{subnet}}, !Ref ExternalRouteTable ]
+  Properties:
+    SubnetId: {{subnet}}
+    RouteTableId: !Ref ExternalRouteTable
+  {% endfor %}
+  {% for route in PrivateRoutes %}
+  {{route}}:
+    Type: AWS::EC2::Route
+    DependsOn: [ "InternetGateway","InternalRouteTable" ] 
+    Properties: 
+      DestinationCidrBlock: {{PrivateRoutes[route].RouteDestination}}
+      GatewayID: {{PrivateRoutes[route].Gateway}}
+      {% if route.Public == "True" %}
+      RouteTableId: !Ref ExternalRouteTable
+      {% else %}
+      RouteTableId: !Ref InternalRouteTable
+      {% endif %}
+  {% endfor %}
+{% for route in PublicRoutes %}
+  {{route}}:
+    Type: AWS::EC2::Route
+    DependsOn: [ "ExternalRouteTable","InternetGateway" ]
+    Properties: 
+      DestinationCidrBlock: {{PublicRoutes[route].RouteDestination}}
+      GatewayID: {{PublicRoutes[route].Gateway}}
+      {% if PublicRoutes[route].Public == "true" %}
+      RouteTableId: !Ref ExternalRouteTable
+      {% else %}
+      RouteTableId: !Ref InternalRouteTable
+      {% endif %}
+  {% endfor %}
+{% for ACL in NetworkACLs %}
+  {{ACL}}:
+    Type: "AWS::EC2:NetworkAcl"
+    DependsOn: "VPC"
+    VpcId: !Ref "VPC"
+    Tags:
+        {% for tag in ACL.Tags %}
+        - Key: {{tag.Key}}
+          Value: {{tag.Value}}
+        {% endfor %}
+    {% set aclloop = loop %}
+      {% for entry in Entries %}
+  {{loop.ACL[entry]}}:
+    Type: "AWS:EC2::NetworkAclEntry"
+    DependsOn: {{ ACL }}
+    Properties:
+      NetworkAclID: !Ref {{ ACL }}
+      CidrBlock: {{Entries[entry].CidrBlock}}
+      {% if Entries[egress] %}
+      Egress: True
+      {% endif %}
+      Icmp: 
+        Code: -1
+        Type: -1
+      PortRange: {{ Entries[entry].PortRange }}
+      Protocol: {{ Entries[entry].Protocol }}
+      RuleAction: {{ Entries[entry].Action }}
+      {% endfor %}
+{% endfor %} 

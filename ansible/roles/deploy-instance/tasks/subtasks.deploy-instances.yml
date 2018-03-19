@@ -1,0 +1,43 @@
+---
+- name: "Build Instances Configuration"
+  local_python_script:
+    src: "build-instances-configuration.py"
+    vars:
+      - "instances_configuration"
+- name: "Deploy Instances (to the moon!)"
+  ec2:
+    access_key: "{{item.access_key}}"
+    secret_key: "{{item.secret_key}}"
+    key_name: "{{key_name}}"
+    type: "{{item.instance_type}}"
+    image: "{{item.image}}"
+    region: "{{item.region}}"
+    instance_tags:
+      Contact: "{{item.contact}}"
+      Environment: "{{item.environment}}"
+      Function: "{{item.function}}"
+      Name: "{{item.name}}"
+      Organization: "{{item.organization}}"
+      Owner: "{{item.owner}}"
+      Project: "{{item.project}}"
+      Role: "{{item.role}}"
+    exact_count: "{{item.exact_count}}"
+    count_tag:
+      Name: "{{item.name}}"
+      Environment: "{{item.environment}}"
+      Project: "{{item.project}}"
+    vpc_subnet_id: "{{item.vpc_subnet_id}}"
+    private_ip: "{{item.private_ip | default(None)}}"
+    assign_public_ip: "{{item.assign_public_ip}}"
+    group_id: "{{item.group_id}}"
+    wait: yes
+  register: "ec2_instances"
+  async: 7200
+  poll: 0
+  with_items: "{{instances_configuration}}"
+- name: "Wait for Instances"
+  async_status: jid="{{item.ansible_job_id}}"
+  register: "ec2_jobs"
+  until: "ec2_jobs.finished"
+  retries: 100
+  with_items: "ec2_instances.results"

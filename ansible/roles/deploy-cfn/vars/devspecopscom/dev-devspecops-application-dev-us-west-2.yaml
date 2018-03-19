@@ -1,0 +1,34 @@
+---
+CfnParams:
+  DNSRoute53RecordNameLoadBalancerApplicationPrivate: devspecopscom-dev-internal.devspecops.io
+  DNSRoute53RecordNameLoadBalancerApplicationPublic: "devspecopscom-dev.devspecops.io"
+  DNSRoute53HostedZoneID: "ZHC4A6DG9G5YK"
+  SSLCertARN: "arn:aws:iam::464365132396:server-certificate/star_devspecops_com_2017_08_31"
+  StackReference: "dev-infrastructure-vpc-us-west-2"
+  ApplicationKeypair: "dev-master-us-west-2"
+  ApplicationInstanceType: "t2.medium"
+  ApplicationOSVersion: "Windows Server 2016"
+  ApplicationOSPasswordEnc: "AQECAHjuYbdOcPqb6VHus03axsirJQICciO7iqhRzspyJ6BzSgAAAGwwagYJKoZIhvcNAQcGoF0wWwIBADBWBgkqhkiG9w0BBwEwHgYJYIZIAWUDBAEuMBEEDGXdh8kpA5q2NyJUMAIBEIApIM2+SHWWAgAI7UJcj3NVIJkhEd4zPQCs51LLKBXApuH/Z5y/o09eb0E="
+  ApplicationTimezone: ""
+  ApplicationVolumeSize: 0
+  ApplicationSwapSize: 1024
+  ApplicationInstanceCountMin: 1
+  ApplicationInstanceCountMax: 2
+  ApplicationInstanceCountDesired: 1
+  ApplicationRole: "application/webserver"
+  ApplicationDeployPackage: "devspecopscom"
+  ApplicationIteration: "2018/03/08 02:58:00 EST"
+  CodeDeployApplicationName: "devspecopsCom"
+  CodeDeployApplicationAbbr: "devspecopscom"
+  Environment: "dev"
+  OrgName: "CP Dev"
+  OrgAbbr: "cpdev"
+  ProjectName: "devspecopsCom"
+  ProjectAbbr: "devspecopscom"
+  FunctionName: "Application"
+  FunctionAbbr: "application"
+  Owner: "Engineering / Travis Estep"
+  Contact: "testep@devspecops.com"
+  ArtifactsBucket: ""
+  LastUpdate: "2018-03-08 02:58:03.774 EST"
+  # NewRelicAppName: {{nr-app-name}}

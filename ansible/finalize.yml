@@ -1,0 +1,6 @@
+---
+- hosts: all
+  strategy: free
+  become: yes
+  roles:
+  - "finalize"

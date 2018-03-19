@@ -1,0 +1,28 @@
+---
+- name: Set vars
+  include_vars: "{{app_name}}/cp{{env_name}}-{{app_name}}-{{app_type}}-{{env_name}}-{{region}}.yaml"
+  ignore_errors: yes
+
+- name: Create CloudFormation Template
+  template:
+    src: "{{app_name}}-{{app_type}}.yaml.j2"
+    dest: "{{playbook_dir}}/roles/deploy-cfn/rendered-templates/{{app_name}}-{{app_type}}.yaml"
+
+- name: Create CloudFormation Stack
+  cloudformation:
+    stack_name: "{{env_name}}-{{app_name}}-{{app_type}}-{{region}}"
+    state: "present"
+    region: "{{region}}"
+    disable_rollback: false
+    template: "{{playbook_dir}}/roles/deploy-cfn/rendered-templates/{{app_name}}-{{app_type}}.yaml"
+    template_format: "yaml"
+    template_parameters: "{{CfnParams}}"
+    tags:
+      # Insert tags here
+      StackName: "{{env_name}}-{{app_name}}-{{app_type}}-{{region}}"
+  register: cf-stack
+
+#- name: Delete CloudFormation Rendered Template
+#  file:
+#    src: "{{playbook_dir}}/roles/deploy-cfn/rendered-templates/{{app_name}}-{{app_type}}.yaml"
+#    state: absent

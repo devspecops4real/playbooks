@@ -1,0 +1,25 @@
+---
+- name: "build inventory configuration"
+  local_python_script:
+    src: "build-inventory-configuration.py"
+    vars:
+      - "inventory_configuration"
+      - "ip_addresses"
+#- name: "wait for ssh to {{ip_addresses}}"
+#  shell: |
+#    echo "Connecting to {{item}}"
+#    until [ $(ssh -i {{playbook_dir}}/.ssh/{{key_name}}.pem ec2-user@{{item}} exit && echo $?) == 0 ]; do :; done
+
+- name: "Wait for SSH connection to EC2 Instances"
+  wait_for:
+    port: 22
+    host: "{{item}}"
+    search_regex: OpenSSH
+    delay: 10
+  vars:
+    ansible_connection: local
+
+  with_items: '{{ip_addresses}}'
+- name: "build inventory file"
+  template: src="env.hosts.j2" dest="{{playbook_dir}}/../share/inventories/{{app_name}}.{{env_name}}.hosts"
+  delegate_to: "localhost"

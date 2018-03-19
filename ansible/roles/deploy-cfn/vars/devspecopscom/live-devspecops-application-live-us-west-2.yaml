@@ -1,0 +1,36 @@
+---
+region: "us-west-2"
+
+CfnParams:
+    DNSRoute53RecordNameLoadBalancerApplicationPrivate: "devspecopscom-live-internal.devspecops.io"
+    DNSRoute53RecordNameLoadBalancerApplicationPublic: "devspecopscom-live.devspecops.io"
+    DNSRoute53HostedZoneID: "ZHC4A6DG9G5YK"
+    SSLCertARN: "arn:aws:iam::464365132396:server-certificate/star_devspecops_com_2017_08_31"
+    StackReference: "live-infrastructure-vpc-us-west-2"
+    ApplicationKeypair: "live-master-us-west-2"
+    ApplicationInstanceType: "c5.large"
+    ApplicationOSVersion: "Windows Server 2016"
+    ApplicationOSPasswordEnc: "INSERT_ENCRYPTED_PASS_HERE"
+    ApplicationTimezone: ""
+    ApplicationVolumeSize: 0
+    ApplicationSwapSize: 1024
+    ApplicationInstanceCountMin: 2
+    ApplicationInstanceCountMax: 10
+    ApplicationInstanceCountDesired: 4
+    ApplicationRole: "application/webserver"
+    ApplicationDeployPackage: "newrelic_dotnet"
+    ApplicationIteration: "2018/02/26 17:00:00 EST"
+    CodeDeployApplicationName: "devspecopsCom"
+    CodeDeployApplicationAbbr: "devspecopscom"
+    Environment: "live"
+    OrgName: "DevSpecOps Live"
+    OrgAbbr: "live"
+    ProjectName: "devspecopsCom"
+    ProjectAbbr: "devspecopscom"
+    FunctionName: "Application"
+    FunctionAbbr: "application"
+    Owner: "Engineering / Travis Estep"
+    Contact: "testep@devspecops.com"
+    ArtifactsBucket: ""
+    LastUpdate: "2018-02-26 21:56:25.380 UTC"
+    # NewRelicAppName: {{nr-app-name}}

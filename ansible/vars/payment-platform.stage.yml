@@ -1,0 +1,3 @@
+hosts:
+  - { name: "", image: "", private_ip: "", vpc_subnet_id: "" }
+    

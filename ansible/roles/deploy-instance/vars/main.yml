@@ -1,0 +1,21 @@
+---
+app_name: "{{lookup('env', 'APP_NAME')}}"
+env_name: "{{lookup('env', 'ENV_NAME')}}"
+
+key_name: "cpfoundation-master-us-west-2"
+
+defaults:
+  key_name: "cpfoundation-master-us-west-2"
+  access_key: "AKIAJGKBYER4K5TY5LZA"
+  secret_key: "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"
+  region: "us-west-2"
+  instance_type: "t2.large"
+  security_group: "sg-b1d769c9"
+  exact_count: 1
+  vpc_subnet_id: "subnet-490cf200"
+  group_id: "sg-c2d668ba"
+  ssh_port: "22"
+  assign_public_ip: no
+
+hosts:
+  - { name: "cpfoundation-jenkins-buildLinux-us-west-2", image: "ami-7172b611", contact: "DevOps@devspecops.com", environment: "infrastructure", function: "Jenkins - Slave - Linux", organization: "infrastructure", owner: "DevOps / Travis Estep", project: "Jenkins", role: "buildLinux"}

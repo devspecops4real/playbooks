@@ -1,0 +1,733 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "DevSpecOps {{env_name}} - Site Management Tool - {{app_type}} ({{env_name}}) - {{region}}"
+Parameters:
+  SSLCertName:
+    Type:                  String
+    Description:           "SSL Certificate - Name"
+  DNSRoute53RecordNameLoadBalancerApplication:
+    Type:                  String
+    Description:           "DNS - Route53 - Record Name (LoadBalancer Application)"
+  DNSRoute53RecordNameAlternate:
+    Type:                  String
+    Description:           "DNS - Route53 - Record Name (Alternate)"
+  DNSRoute53HostedZoneID:
+    Type:                  String
+    Description:           "DNS - Route53 - Hosted Zone ID"
+  StackReference:
+    Type:                  String
+    Description:           "Stack Reference Name"
+  ApplicationKeypair:
+    Type:                  "AWS::EC2::KeyPair::KeyName"
+    Description:           "EC2 KeyPair"
+    ConstraintDescription: "must be the name of an existing EC2 KeyPair"
+  ApplicationInstanceType:
+    Type:                  String
+    Default:               "t2.micro"
+    Description:           "Application EC2 instance type"
+    ConstraintDescription: "Must be a valid EC2 instance type"
+  ApplicationOSVersion:
+    Type:                  "String"
+    Default:               "Windows Server 2016"
+    AllowedValues:
+      - "Windows Server 2012"
+      - "Windows Server 2016"
+      - "CI Windows"
+    Description:           "OS Version"
+    ConstraintDescription: "Supported Versions: Windows Server 2012, Windows Server 2016, CI Windows"
+  ApplicationOSPasswordEnc:
+    Type:                  "String"
+    Description:           "Application: OS Password (Encrypted)"
+  ApplicationTimezone:
+    Type:                  String
+    Description:           "Application Timezone (IANA)"
+  ApplicationVolumeSize:
+    Type:                  String
+    Description:           "Application Volume Size (gb)"
+  ApplicationSwapSize:
+    Type:                  Number
+    Default:               256
+    Description:           "Application Swap Size (mb)"
+  ApplicationInstanceCountMin:
+    Type:                  Number
+    Default:               1
+    Description:           "Application Instance Count (Min)"
+  ApplicationInstanceCountMax:
+    Type:                  Number
+    Default:               2
+    Description:           "Application Instance Count (Max)"
+  ApplicationInstanceCountDesired:
+    Type:                  Number
+    Default:               1
+    Description:           "Application Instance Count (Desired)"
+  ApplicationRole:
+    Type:                  String
+    Default:               "Application"
+    Description:           "Application Role"
+    ConstraintDescription: "must be a valid String"
+  ApplicationDeployPackage:
+    Type:                  String
+    Default:               ""
+    Description:           "Application Deploy Package"
+  ApplicationIteration:
+    Type:                  String
+    Default:               "1"
+    Description:           "Application Iteration (update this field to force an update of the instance)"
+    ConstraintDescription: "must be a valid String"
+  CodeDeployApplicationName:
+    Type:                  String
+    Description:           "CodeDeploy: Application Name"
+  CodeDeployApplicationAbbr:
+    Type:                  String
+    Description:           "CodeDeploy: Application Abbreviation"
+  Environment:
+    Type:                  String
+    Default:               dev
+    AllowedValues:
+      - dev
+      - qa
+      - stg
+      - stage
+      - tst
+      - test
+      - prd
+      - live
+      - infr
+      - beta
+    Description:           "Environment"
+    ConstraintDescription: "must be a valid Environment type"
+  OrgName:
+    Type:                  String
+    MinLength:             2
+    MaxLength:             48
+    Description:           "Organization Name"
+    ConstraintDescription: "2 to 48 characters"
+  OrgAbbr:
+    Type:                  String
+    MinLength:             2
+    MaxLength:             16
+    AllowedPattern:        "[a-z][a-z0-9]*"
+    Description:           "Organization Abbreviation"
+    ConstraintDescription: "must begin with a letter and contain only lowercase alphanumeric characters (2 to 16 characters)"
+  ProjectName:
+    Type:                  String
+    MinLength:             2
+    MaxLength:             64
+    Description:           "Project Name"
+    ConstraintDescription: "2 to 64 characters"
+  ProjectAbbr:
+    Type:                  String
+    MinLength:             2
+    MaxLength:             64
+    Description:           "Project Abbreviation"
+    ConstraintDescription: "must begin with a letter and contain only lowercase alphanumeric characters (2 to 64 characters)"
+  FunctionName:
+    Type:                  String
+    MinLength:             2
+    MaxLength:             64
+    Description:           "Function Name"
+    ConstraintDescription: "2 to 64 characters"
+  FunctionAbbr:
+    Type:                  String
+    MinLength:             2
+    MaxLength:             20
+    Description:           "Function Abbreviation"
+    ConstraintDescription: "must begin with a letter and contain only lowercase alphanumeric characters (2 to 20 characters)"
+  Owner:
+    Type:                  String
+    MinLength:             2
+    MaxLength:             128
+    Description:           "Owner"
+    ConstraintDescription: "2 to 128 characters"
+  Contact:
+    Type:                  String
+    MinLength:             2
+    MaxLength:             128
+    Description:           "Contact"
+    ConstraintDescription: "2 to 128 characters"
+  ArtifactsBucket:
+    Type:                  String
+    Description:           "Artifacts Bucket"
+    ConstraintDescription: "must be a valid S3 bucket name"
+  LastUpdate:
+    Type:                  String
+    Default:               0
+    Description:           "CFN Iteration Timestamp"
+Mappings:
+  AWSInstanceTypeToArch:
+    # t2
+    t2.nano:
+      "Arch": "HVM64"
+    t2.micro:
+      "Arch": "HVM64"
+    t2.small:
+      "Arch": "HVM64"
+    t2.medium:
+      "Arch": "HVM64"
+    t2.large:
+      "Arch": "HVM64"
+    t2.xlarge:
+      "Arch": "HVM64"
+    t2.2xlarge:
+      "Arch": "HVM64"
+    # m3
+    m3.medium:
+      "Arch": "HVM64"
+    m3.large:
+      "Arch": "HVM64"
+    m3.xlarge:
+      "Arch": "HVM64"
+    m3.2xlarge:
+      "Arch": "HVM64"
+    # m4
+    m4.large:
+      "Arch": "HVM64"
+    m4.xlarge:
+      "Arch": "HVM64"
+    m4.2xlarge:
+      "Arch": "HVM64"
+    m4.4xlarge:
+      "Arch": "HVM64"
+    m4.10xlarge:
+      "Arch": "HVM64"
+    m4.16xlarge:
+      "Arch": "HVM64"
+    # c3
+    c3.large:
+      "Arch": "HVM64"
+    c3.xlarge:
+      "Arch": "HVM64"
+    c3.2xlarge:
+      "Arch": "HVM64"
+    c3.4xlarge:
+      "Arch": "HVM64"
+    c3.8xlarge:
+      "Arch": "HVM64"
+    # c4
+    c4.large:
+      "Arch": "HVM64"
+    c4.xlarge:
+      "Arch": "HVM64"
+    c4.2xlarge:
+      "Arch": "HVM64"
+    c4.4xlarge:
+      "Arch": "HVM64"
+    c4.8xlarge:
+      "Arch": "HVM64"
+    # x1
+    x1.16xlarge:
+      "Arch": "HVM64"
+    x1.32xlarge:
+      "Arch": "HVM64"
+    # r3
+    r3.large:
+      "Arch": "HVM64"
+    r3.xlarge:
+      "Arch": "HVM64"
+    r3.2xlarge:
+      "Arch": "HVM64"
+    r3.4xlarge:
+      "Arch": "HVM64"
+    r3.8xlarge:
+      "Arch": "HVM64"
+    # r4
+    r4.large:
+      "Arch": "HVM64"
+    r4.xlarge:
+      "Arch": "HVM64"
+    r4.2xlarge:
+      "Arch": "HVM64"
+    r4.4xlarge:
+      "Arch": "HVM64"
+    r4.8xlarge:
+      "Arch": "HVM64"
+    r4.16xlarge:
+      "Arch": "HVM64"
+    # g2
+    g2.2xlarge:
+      "Arch": "HVMG2"
+    g2.4xlarge:
+      "Arch": "HVMG2"
+    # p2
+    p2.xlarge:
+      "Arch": "HVMG2"
+    p2.8xlarge:
+      "Arch": "HVMG2"
+    p2.16xlarge:
+      "Arch": "HVMG2"
+    # i2
+    i2.xlarge:
+      "Arch": "HVM64"
+    i2.2xlarge:
+      "Arch": "HVM64"
+    i2.4xlarge:
+      "Arch": "HVM64"
+    i2.8xlarge:
+      "Arch": "HVM64"
+    # d2
+    d2.xlarge:
+      "Arch": "HVM64"
+    d2.2xlarge:
+      "Arch": "HVM64"
+    d2.4xlarge:
+      "Arch": "HVM64"
+    d2.8xlarge:
+      "Arch": "HVM64"
+Conditions:
+  ExistsApplicationOSPassword:
+    !Not [!Equals [!Ref "ApplicationOSPasswordEnc", ""]]
+  ExistsApplicationTimezone:
+    !Not [!Equals [!Ref ApplicationTimezone, ""]]
+  ExistsApplicationVolumeSize:
+    !Not [!Equals [!Ref ApplicationVolumeSize, ""]]
+  ExistsApplicationSwapSize:
+    !Not [!Equals [!Ref ApplicationSwapSize, ""]]
+  ExistsApplicationDeployPackage:
+    !Not [!Equals [!Ref ApplicationDeployPackage, ""]]
+Resources:
+  RecordSetAlternate:
+    Type: "AWS::Route53::RecordSet"
+    Properties:
+      HostedZoneId: !Ref "DNSRoute53HostedZoneID"
+      Comment: !Join [ "", [ !Ref "FunctionName", " (", !Ref "Environment", ") - ", !Ref "AWS::Region" ] ]
+      Name: !Ref "DNSRoute53RecordNameAlternate"
+      Type: "CNAME"
+      TTL: "900"
+      ResourceRecords:
+        - !Ref "DNSRoute53RecordNameLoadBalancerApplication"
+  LoadBalancerApplication:
+    Type: "AWS::ElasticLoadBalancing::LoadBalancer"
+    Properties:
+      LoadBalancerName: !Join [ "", [ !Ref "ProjectAbbr", "-", "app", "-", "pri", "-", !Ref "Environment" ] ]
+      Scheme: "internal"
+      Subnets:
+        - !GetAtt "StackReferenceLookup.SubnetPrivate1Id"
+        - !GetAtt "StackReferenceLookup.SubnetPrivate2Id"
+        - !GetAtt "StackReferenceLookup.SubnetPrivate3Id"
+      SecurityGroups:
+        - !Ref "SecurityGroupApplicationELB"
+        - !GetAtt "StackReferenceLookup.SecurityGroupDirectConnectAccessId"
+      Listeners:
+      - LoadBalancerPort: "443"
+        Protocol: "SSL"
+        InstancePort: "80"
+        InstanceProtocol: "TCP"
+        SSLCertificateId: !Join [ "", [ "arn:aws:iam::", !Ref "AWS::AccountId", ":server-certificate/", !Ref "SSLCertName" ] ]
+      CrossZone: "true"
+      ConnectionDrainingPolicy:
+        Enabled: "true"
+        Timeout: "30"
+      HealthCheck:
+        Target: "TCP:80"
+        HealthyThreshold: "3"
+        UnhealthyThreshold: "5"
+        Interval: "30"
+        Timeout: "5"
+      Tags:
+        - Key: "Name"
+          Value: !Join [ "", [ "elb", "-", !Ref "OrgAbbr", "-", !Ref "ProjectAbbr", "-", !Ref "FunctionAbbr", "-", "application", "-", !Ref "Environment", "-", !Ref "AWS::Region" ] ]
+  SecurityGroupApplication:
+    Type: "AWS::EC2::SecurityGroup"
+    Properties:
+      GroupDescription: "Application Security Group"
+      VpcId: !GetAtt "StackReferenceLookup.VPCId"
+      SecurityGroupIngress:
+      - IpProtocol:            "tcp"
+        FromPort:              "80"
+        ToPort:                "80"
+        SourceSecurityGroupId: !Ref "SecurityGroupApplicationELB"
+      - IpProtocol:            "tcp"
+        FromPort:              "80"
+        ToPort:                "80"
+        CidrIp:                "10.0.0.0/8"
+      - IpProtocol:            "tcp"
+        FromPort:              "443"
+        ToPort:                "443"
+        CidrIp:                "10.0.0.0/8"
+      SecurityGroupEgress:
+      - IpProtocol:            "-1"
+        FromPort:              "0"
+        ToPort:                "65535"
+        CidrIp:                "0.0.0.0/0"
+      Tags:
+        - Key: "Name"
+          Value: !Join [ "", [ !Ref "OrgAbbr", "-", !Ref "ProjectAbbr", "-", !Ref "FunctionAbbr", "-sg-application-", !Ref "Environment" ] ]
+    DependsOn:
+      - "StackReferenceLookup"
+  SecurityGroupApplicationELB:
+    Type: "AWS::EC2::SecurityGroup"
+    Properties:
+      GroupDescription: "Application ELB Security Group"
+      VpcId: !GetAtt "StackReferenceLookup.VPCId"
+      SecurityGroupIngress:
+      - IpProtocol:            "tcp"
+        FromPort:              "80"
+        ToPort:                "80"
+        CidrIp:                "10.0.0.0/8"
+      - IpProtocol:            "tcp"
+        FromPort:              "443"
+        ToPort:                "443"
+        CidrIp:                "10.0.0.0/8"
+      SecurityGroupEgress:
+      - IpProtocol:            "-1"
+        FromPort:              "0"
+        ToPort:                "65535"
+        CidrIp:                "0.0.0.0/0"
+      Tags:
+        - Key: "Name"
+          Value: !Join [ "", [ !Ref "OrgAbbr", "-", !Ref "ProjectAbbr", "-", !Ref "FunctionAbbr", "-sg-applicationelb-", !Ref "Environment" ] ]
+    DependsOn:
+      - "StackReferenceLookup"
+  RoleApplication:
+    Type: "AWS::IAM::Role"
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          -
+            Effect: "Allow"
+            Principal:
+              Service:
+                - "ec2.amazonaws.com"
+            Action:
+              - "sts:AssumeRole"
+      Path: "/"
+      Policies:
+        -
+          PolicyName: !Join [ "", [ "policy_", !Ref "OrgAbbr", "_", !Ref "ProjectAbbr", "_", !Ref "FunctionAbbr", "_application_", !Ref "AWS::Region" ] ]
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: "Allow"
+                Action:
+                  - "s3:GetBucketLocation"
+                  - "s3:ListAllMyBuckets"
+                Resource: "arn:aws:s3:::*"
+              - Effect: "Allow"
+                Action:
+                  - "s3:ListBucket"
+                Resource:
+                  - !Join [ "", [ "arn:aws:s3:::", !Ref "ArtifactsBucket" ] ]
+              - Effect: "Allow"
+                Action:
+                  - "s3:ListBucket"
+                Resource:
+                  - !Join [ "", [ "arn:aws:s3:::", !Ref "ArtifactsBucket", "/deployment" ] ]
+                  - !Join [ "", [ "arn:aws:s3:::", !Ref "ArtifactsBucket", "/deployment/*" ] ]
+                  - !Join [ "", [ "arn:aws:s3:::", !Ref "ArtifactsBucket", "/builds/*" ] ]
+              - Effect: "Allow"
+                Action:
+                  - "s3:ListBucket"
+                Resource:
+                  - !Join [ "", [ "arn:aws:s3:::", !Ref "ArtifactsBucket", "/deployment/dependencies" ] ]
+                  - !Join [ "", [ "arn:aws:s3:::", !Ref "ArtifactsBucket", "/deployment/dependencies/*" ] ]
+                  - !Join [ "", [ "arn:aws:s3:::", !Ref "ArtifactsBucket", "/deployment/deploy" ] ]
+                  - !Join [ "", [ "arn:aws:s3:::", !Ref "ArtifactsBucket", "/deployment/deploy/*" ] ]
+              - Effect: "Allow"
+                Action:
+                  - "s3:GetObject"
+                  - "s3:ListBucket"
+                Resource:
+                  - !Join [ "", [ "arn:aws:s3:::", !Ref "ArtifactsBucket", "/deployment/dependencies/bamf" ] ]
+                  - !Join [ "", [ "arn:aws:s3:::", !Ref "ArtifactsBucket", "/deployment/dependencies/bamf/*" ] ]
+              - !If
+                  - ExistsApplicationDeployPackage
+                  - Effect: "Allow"
+                    Action:
+                      - "s3:GetObject"
+                      - "s3:ListBucket"
+                    Resource:
+                      - !Join [ "", [ "arn:aws:s3:::", !Ref "ArtifactsBucket", "/deployment/deploy/", !Ref "ApplicationDeployPackage" ] ]
+                      - !Join [ "", [ "arn:aws:s3:::", !Ref "ArtifactsBucket", "/deployment/deploy/", !Ref "ApplicationDeployPackage", "/*" ] ]
+                  - !Ref "AWS::NoValue"
+              - Effect: "Allow"
+                Action:
+                  - "sns:Publish"
+                Resource: !GetAtt "StackReferenceLookup.SNSTopicInfrastructure"
+              # Allow SSM Execution
+              - Effect: "Allow"
+                Action:
+                  - "ssm:DescribeAssociation"
+                  - "ssm:GetDocument"
+                  - "ssm:ListAssociations"
+                  - "ssm:UpdateAssociationStatus"
+                  - "ssm:UpdateInstanceInformation"
+                Resource: "*"
+              - Effect: "Allow"
+                Action:
+                  - "ec2messages:AcknowledgeMessage"
+                  - "ec2messages:DeleteMessage"
+                  - "ec2messages:FailMessage"
+                  - "ec2messages:GetEndpoint"
+                  - "ec2messages:GetMessages"
+                  - "ec2messages:SendReply"
+                Resource: "*"
+              - Effect: "Allow"
+                Action:
+                  - "cloudwatch:PutMetricData"
+                Resource: "*"
+              - Effect: "Allow"
+                Action:
+                  - "logs:CreateLogGroup"
+                  - "logs:CreateLogStream"
+                  - "logs:DescribeLogGroups"
+                  - "logs:DescribeLogStreams"
+                  - "logs:PutLogEvents"
+                Resource: "*"
+              - Effect: "Allow"
+                Action:
+                  - "s3:ListBucket"
+                Resource:
+                  - !Join [ "", [ "arn:aws:s3:::", !Ref "ArtifactsBucket", "/builds" ] ]
+                  - !Join [ "", [ "arn:aws:s3:::", !Ref "ArtifactsBucket", "/builds/*" ] ]
+              - Effect: "Allow"
+                Action:
+                  - "s3:GetObject"
+                  - "s3:ListBucket"
+                Resource:
+                  - !Join [ "", [ "arn:aws:s3:::", !Ref "ArtifactsBucket", "/builds/", !Ref "CodeDeployApplicationAbbr" ] ]
+                  - !Join [ "", [ "arn:aws:s3:::", !Ref "ArtifactsBucket", "/builds/", !Ref "CodeDeployApplicationAbbr", "/*" ] ]
+              - Effect: "Allow"
+                Action:
+                  - "autoscaling:Describe*"
+                  - "s3:Get*"
+                Resource: "*"
+    DependsOn:
+      - "StackReferenceLookup"
+  AutoScalingGroupApplication:
+    Type: "AWS::AutoScaling::AutoScalingGroup"
+    Properties:
+      AvailabilityZones:
+        - !GetAtt "StackReferenceLookup.SubnetPrivate1AvailabilityZone"
+        - !GetAtt "StackReferenceLookup.SubnetPrivate2AvailabilityZone"
+        - !GetAtt "StackReferenceLookup.SubnetPrivate3AvailabilityZone"
+      VPCZoneIdentifier:
+        - !GetAtt "StackReferenceLookup.SubnetPrivate1Id"
+        - !GetAtt "StackReferenceLookup.SubnetPrivate2Id"
+        - !GetAtt "StackReferenceLookup.SubnetPrivate3Id"
+      LaunchConfigurationName: !Ref "LaunchConfigurationApplication"
+      MinSize: !Ref "ApplicationInstanceCountMin"
+      MaxSize: !Ref "ApplicationInstanceCountMax"
+      DesiredCapacity: !Ref "ApplicationInstanceCountDesired"
+      Cooldown: "300"
+      HealthCheckGracePeriod: "600"
+      HealthCheckType: "ELB"
+      LoadBalancerNames:
+        - !Ref "LoadBalancerApplication"
+      Tags:
+        - Key: "Name"
+          Value: !Join [ "", [ !Ref "OrgAbbr", " - ", !Ref "ProjectName", " - ", !Ref "FunctionName", ": Application (", !Ref "Environment", ") - ", !Ref "AWS::Region" ] ]
+          PropagateAtLaunch: "true"
+        - Key: "Organization"
+          Value: !Ref "OrgName"
+          PropagateAtLaunch: "true"
+        - Key: "Project"
+          Value: !Ref "ProjectName"
+          PropagateAtLaunch: "true"
+        - Key: "Function"
+          Value: !Ref "FunctionName"
+          PropagateAtLaunch: "true"
+        - Key: "Owner"
+          Value: !Ref "Owner"
+          PropagateAtLaunch: "true"
+        - Key: "Contact"
+          Value: !Ref "Contact"
+          PropagateAtLaunch: "true"
+        - Key: "Role"
+          Value: !Ref "ApplicationRole"
+          PropagateAtLaunch: "true"
+    CreationPolicy:
+      ResourceSignal:
+        Count: "0"
+        Timeout: "PT20M"
+    UpdatePolicy:
+      AutoScalingRollingUpdate:
+        MinInstancesInService: !Ref "ApplicationInstanceCountMin"
+        MaxBatchSize: "1"
+        WaitOnResourceSignals: "true"
+        PauseTime: "PT20M"
+    DependsOn:
+      - "StackReferenceLookup"
+  LaunchConfigurationApplication:
+    Type: "AWS::AutoScaling::LaunchConfiguration"
+    Metadata:
+      Comment: "Application Instance"
+      AWS::CloudFormation::Authentication:
+        S3AccessCreds:
+          type: "S3"
+          roleName: !Ref "RoleApplication"
+          buckets:
+            - !Ref "ArtifactsBucket"
+      AWS::CloudFormation::Init:
+        configSets:
+          WindowsConfig:
+            - "SetOSPassword"
+            - "GenerateInfoFiles"
+            - "ConfigureAWSTools"
+            - "InstallDeploymentBundle"
+        SetOSPassword:
+          commands:
+            01-set_password:
+              !If
+                - ExistsApplicationOSPassword
+                - command: !Sub |
+                    net user Administrator ${ApplicationOSPasswordDecrypted.DecryptedString}
+                  waitAfterCompletion: 0
+                - !Ref "AWS::NoValue"
+        GenerateInfoFiles:
+          files:
+            "c:\\deploy\\aws.info":
+              content: !Sub |
+                ## START AWS Info
+                [aws_account_id]=${AWS::AccountId}
+                [region]=${AWS::Region}
+                [stack]=${AWS::StackId}
+                [org_name]=${OrgName}
+                [org_abbr]=${OrgAbbr}
+                [project_name]=${ProjectName}
+                [project_abbr]=${ProjectAbbr}
+                [function_name]=${FunctionName}
+                [function_abbr]=${FunctionAbbr}
+                [owner]=${Owner}
+                [contact]=${Contact}
+                [environment]=${Environment}
+                [artifacts_bucket]=${ArtifactsBucket}
+                ## END AWS Info
+            "c:\\deploy\\notifications.info":
+              content: !Sub |
+                ## START Notifications Info
+                [sns_topic_infrastructure]=${StackReferenceLookup.SNSTopicInfrastructure}
+                [hipchat_apikey_enc]=${StackReferenceLookup.HipChatAPIKeyEnc}
+                ## END Notifications Info
+            "c:\\deploy\\log.info":
+              content: !Sub |
+                ## START Log Info
+                [cloudwatch_log_group]=${LogGroupApplication}
+                ## END Log Info
+            "c:\\deploy\\application.info":
+              content: !Sub |
+                ## START Application Info
+                [application_iteration]=${ApplicationIteration}
+                ## END Application Info
+        ConfigureAWSTools:
+          files:
+            "c:\\cfn\\cfn-hup.conf":
+              content: !Sub |
+                [main]
+                stack=${AWS::StackId}
+                region=${AWS::Region}
+            "c:\\cfn\\hooks.d\\cfn-auto-reloader.conf":
+              content: !Sub |
+                [cfn-auto-reloader-hook]
+                triggers=post.update
+                path=Resources.LaunchConfigurationApplication.Metadata.AWS::CloudFormation::Init
+                action=c:\\"Program Files"\\Amazon\\cfn-bootstrap\\cfn-init.exe -v --stack ${AWS::StackName} --resource LaunchConfigurationApplication --region ${AWS::Region}
+          services:
+            windows:
+              cfn-hup:
+                enabled: "true"
+                ensureRunning: "true"
+                files:
+                  - "c:\\cfn\\cfn-hup.conf"
+                  - "c:\\cfn\\hooks.d\\cfn-auto-reloader.conf"
+        InstallDeploymentBundle:
+          sources:
+            "c:\\deploy\\app\\":
+              !If
+                - ExistsApplicationDeployPackage
+                - !Join [ "", [ "https://", !Ref "ArtifactsBucket", ".s3.amazonaws.com", "/deployment/deploy/", !Ref "ApplicationDeployPackage", "/bundle.latest.tgz" ] ]
+                - !Ref "AWS::NoValue"
+          commands:
+            01-install_deploy:
+              !If
+                - ExistsApplicationDeployPackage
+                - command: "powershell.exe -ExecutionPolicy Unrestricted c:\\deploy\\app\\deploy.ps1"
+                  waitAfterCompletion: 0
+                - !Ref "AWS::NoValue"
+    Properties:
+      KeyName: !Ref "ApplicationKeypair"
+      IamInstanceProfile: !Ref "InstanceProfileApplication"
+      ImageId: "ami-b2e756ca"
+      SecurityGroups:
+        - !Ref "SecurityGroupApplication"
+        - !GetAtt "StackReferenceLookup.SecurityGroupDirectConnectRDPId"
+        - !GetAtt "StackReferenceLookup.SecurityGroupDirectConnectAccessId"
+      InstanceType: !Ref "ApplicationInstanceType"
+      InstanceMonitoring: "true"
+      UserData:
+        "Fn::Base64":
+          !Sub |
+            <script>
+            REM Iteration: ${ApplicationIteration}
+            mkdir c:\\deploy
+            mkdir c:\\cfn
+            mkdir c:\\cfn\\log
+            c:\\"Program Files"\\Amazon\\cfn-bootstrap\\cfn-init.exe -v --stack ${AWS::StackName} --resource LaunchConfigurationApplication --region ${AWS::Region} --configset "WindowsConfig" > c:\\cfn\\log\\cfn-call-log 2>&1
+            c:\\"Program Files"\\Amazon\\cfn-bootstrap\\cfn-signal.exe -e %ERRORLEVEL% --stack ${AWS::StackName} --resource AutoScalingGroupApplication --region ${AWS::Region}
+            powershell.exe -Command Set-Service -Name "codedeployagent" -StartupType automatic
+            powershell.exe -Command Start-Service -Name codedeployagent
+            </script>
+    DependsOn:
+      - "StackReferenceLookup"
+  RecordSetLoadBalancerApplication:
+    Type: "AWS::Route53::RecordSet"
+    Properties:
+      HostedZoneId: !Ref "DNSRoute53HostedZoneID"
+      Comment: !Join [ "", [ !Ref "FunctionName", " (", !Ref "Environment", ") - ", !Ref "AWS::Region" ] ]
+      Name: !Ref "DNSRoute53RecordNameLoadBalancerApplication"
+      Type: "A"
+      AliasTarget:
+        HostedZoneId: !GetAtt "LoadBalancerApplication.CanonicalHostedZoneNameID"
+        DNSName: !GetAtt "LoadBalancerApplication.DNSName"
+    DependsOn: "LoadBalancerApplication"
+  InstanceProfileApplication:
+    Type: "AWS::IAM::InstanceProfile"
+    Properties:
+      Path: "/"
+      Roles:
+        - !Ref "RoleApplication"
+  LogGroupApplication:
+    Type: "AWS::Logs::LogGroup"
+    Properties:
+      LogGroupName: !Join [ "", [ !Ref "OrgAbbr", "-", !Ref "ProjectAbbr", "-", !Ref "FunctionAbbr", "-", !Ref "Environment", "-", !Ref "AWS::Region" ] ]
+      RetentionInDays: 7
+  ApplicationOSPasswordDecrypted:
+    Condition: "ExistsApplicationOSPassword"
+    Type: "Custom::ApplicationOSPasswordDecrypted"
+    Version: "1.0"
+    Properties:
+      "ServiceToken": !Join [ "", [ "arn:aws:lambda:", !Ref "AWS::Region", ":", !Ref "AWS::AccountId", ":function:KMSDecryptString" ] ]
+      "EncryptedString": !Ref "ApplicationOSPasswordEnc"
+  StackReferenceLookup:
+    Type: "Custom::StackReferenceLookup"
+    Version: "1.0"
+    Properties:
+      "ServiceToken": !Join [ "", [ "arn:aws:lambda:", !Ref "AWS::Region", ":", !Ref "AWS::AccountId", ":function:StackReferenceLookup" ] ]
+      "Region": !Ref "AWS::Region"
+      "StackName": !Ref "StackReference"
+      "LastUpdate": !Ref "LastUpdate"
+Outputs:
+  SecurityGroupApplicationELBId:
+    Description: "Security Group - Application ELB ID"
+    Value: !Ref "SecurityGroupApplicationELB"
+    Export:
+      Name: !Sub "${AWS::StackName}-SecurityGroupApplicationELBId"
+  SecurityGroupApplicationId:
+    Description: "Security Group - Application ID"
+    Value: !Ref "SecurityGroupApplication"
+    Export:
+      Name: !Sub "${AWS::StackName}-SecurityGroupApplicationId"
+  LaunchConfigurationApplicationId:
+    Description: "Launch Configuration - Application ID"
+    Value: !Ref "LaunchConfigurationApplication"
+    Export:
+      Name: !Sub "${AWS::StackName}-LaunchConfigurationApplicationId"
+  AutoScalingGroupApplicationId:
+    Description: "AutoScalingGroup - Application ID"
+    Value: !Ref "AutoScalingGroupApplication"
+    Export:
+      Name: !Sub "${AWS::StackName}-AutoScalingGroupApplicationId"
+  LastUpdate:
+    Description: "Last Update"
+    Value: !Ref "LastUpdate"
+    Export:
+      Name: !Sub "${AWS::StackName}-LastUpdate"

@@ -1,0 +1,5 @@
+app_name: "{{lookup('env', 'APP_NAME')}}"
+app_type: "{{lookup('env', 'APP_TYPE')}}"
+env_name: "{{lookup('env', 'ENV_NAME')}}"
+
+region: "us-west-2"

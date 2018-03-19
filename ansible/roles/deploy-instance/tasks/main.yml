@@ -1,0 +1,8 @@
+---
+- name: "Set {{app_name}}: {{env_name}} Vars"
+  include_vars: "{{playbook_dir}}/vars/{{app_name}}.{{env_name}}.yml"
+  ignore_errors: yes
+- name: Deploy Instances
+  include: subtasks.deploy-instances.yml
+- name: Build inventory
+  include: subtasks.build-inventory.yml

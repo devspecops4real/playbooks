@@ -1,0 +1,63 @@
+---
+cidr:
+EnableDNSSupport: "true"
+EnableDNSHostnames: "true"
+Vpc_Tags:
+  - Key: "Name"
+    Value: "Value"
+InternetGateway:
+  Tags:
+    - Key: "Name"
+      Value: "Value"
+InternalRouteTable:
+  Tags:
+    - Key: "Name"
+      Value: "Value"
+ExternalRouteTable:
+  Tags:
+    - Key: "Name"
+      Value: "Value" 
+PrivateSubnets:
+  PriSubnet1:
+    Name: "Subnet"
+    cidrblock: "/24"
+    az: "a"
+    Tags:
+      - Key: "Name"
+        Value: "Value"
+PrivateRoutes:
+  PriRoute1:
+    RouteDestination: "outside"
+    Gateway: "internet"
+    Public: "true"
+PublicSubnets:
+  PubSubnet1:
+    cidrblock: "/24"
+    az: "b"
+    Tags:
+      - Key: "Name"
+        Value: "Value"
+PublicRoutes:
+  PubRoute1:
+      RouteDestination: "outside"
+      Gateway: "internet"
+      Public: "true"
+NetworkACLs:
+  ACL1:
+    Tags:
+      - Key: "Name"
+        Value: "Value"
+    Entries:
+      - Entry1:
+          CidrBlock: "/27"
+          egress: "true"
+          PortRange: "3232"
+          Protocol: "tcp"
+          Action: "allow"
+
+
+
+
+
+
+
